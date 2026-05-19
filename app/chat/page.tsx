@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import dbConnect from "@/lib/mongoose";
 import User from "@/models/User";
 import { verifyToken } from "@/lib/auth";
-import LLMChatPanel from "@/components/LLMChatPanel";
+import LLMChatPanel from "../components/LLMChatPanel";
 
 export default async function ChatPage() {
   const cookieStore = await cookies();
