@@ -1,36 +1,118 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Synapse Web
 
-## Getting Started
+Synapse Web is the frontend portal for your Synapse AI service. It includes:
 
-First, run the development server:
+- Landing page and product overview
+- JWT-based authentication with MongoDB / Mongoose user storage
+- Developer documentation and AI service proxy integration
+- Direct LLM chat support for OpenAI, Claude, Ollama, Hugging Face, local memory, and custom models
+- Dashboard for authenticated users to query the Synapse AI backend
+
+## Getting started
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Copy environment variables:
+
+```bash
+cp .env.example .env.local
+```
+
+3. Configure `.env.local`:
+
+```env
+MONGODB_URI=mongodb://localhost:27017/synapse-web
+JWT_SECRET=replace_with_a_strong_secret
+SYNAPSE_AI_SERVICE_URL=http://localhost:8000
+```
+
+4. Run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+5. Open the app in your browser:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## App structure
 
-## Learn More
+- `app/page.tsx` - landing page for the web portal
+- `app/login/page.tsx` - login page
+- `app/register/page.tsx` - registration page
+- `app/dashboard/page.tsx` - authenticated dashboard with AI query integration
+- `app/docs/page.tsx` - Synapse documentation and integration guide
+- `app/api/auth/*` - auth API routes using Mongoose and JWT
+- `app/api/ai/proxy/route.ts` - proxies AI queries to the Synapse AI service
+- `models/User.ts` - user schema and model
+- `lib/mongoose.ts` - persistent Mongoose connection helper
+- `lib/auth.ts` - JWT signing and verification utilities
 
-To learn more about Next.js, take a look at the following resources:
+## API usage
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Register a new user
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+curl -X POST http://localhost:3000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Alice","email":"alice@example.com","password":"secret"}'
+```
 
-## Deploy on Vercel
+### Login
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+curl -X POST http://localhost:3000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"alice@example.com","password":"secret"}'
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Verify current session
+
+```bash
+curl -H "Authorization: Bearer <token>" http://localhost:3000/api/auth/me
+```
+
+### Proxy AI queries
+
+```bash
+curl -X POST http://localhost:3000/api/ai/proxy \
+  -H "Content-Type: application/json" \
+  -d '{"query":"Explain how Synapse works","user_id":"<user-id>"}'
+```
+
+### Direct LLM chat
+
+```bash
+curl -X POST http://localhost:3000/api/ai/llm \
+  -H "Content-Type: application/json" \
+  -d '{"provider":"openai","prompt":"Summarize my current project goals.","use_memory":true,"top_k":5,"model":"gpt-4o-mini"}'
+```
+
+### LLM provider environment variables
+
+```env
+OPENAI_API_KEY=your-openai-key
+ANTHROPIC_API_KEY=your-anthropic-key
+OLLAMA_API_BASE=http://localhost:11434
+HUGGINGFACE_API_KEY=your-hf-key
+HUGGINGFACE_API_BASE=https://api-inference.huggingface.co/models
+```
+
+## Integrating with Synapse AI service
+
+Set `SYNAPSE_AI_SERVICE_URL` to the URL of your Synapse AI backend. The dashboard sends queries through the proxy route,
+so your web app and AI service can stay separated by host and port.
+
+## Next steps
+
+- Connect a real MongoDB instance
+- Add a production JWT secret
+- Extend the dashboard with user memory and personalization
+- Add analytics on top of the AI query proxy
