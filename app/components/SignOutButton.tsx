@@ -1,10 +1,6 @@
 'use client';
 
-import { useState } from "react";
-
 export default function SignOutButton() {
-  const [message, setMessage] = useState<string | null>(null);
-
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
     window.localStorage.removeItem("synapse_token");

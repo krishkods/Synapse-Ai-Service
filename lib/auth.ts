@@ -1,6 +1,5 @@
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET || "synapse_secret_example";
 const JWT_EXPIRES_IN = "7d";
 
 export type AuthTokenPayload = {
@@ -9,14 +8,26 @@ export type AuthTokenPayload = {
   name: string;
 };
 
+function getJwtSecret() {
+  const secret = process.env.JWT_SECRET;
+
+  if (!secret) {
+    const message = "Missing required JWT_SECRET environment variable.";
+    console.error(message);
+    throw new Error(message);
+  }
+
+  return secret;
+}
+
 export function signToken(payload: AuthTokenPayload) {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: JWT_EXPIRES_IN });
 }
 
 export function verifyToken(token: string) {
   try {
-    return jwt.verify(token, JWT_SECRET) as AuthTokenPayload;
-  } catch (error) {
+    return jwt.verify(token, getJwtSecret()) as AuthTokenPayload;
+  } catch {
     return null;
   }
 }

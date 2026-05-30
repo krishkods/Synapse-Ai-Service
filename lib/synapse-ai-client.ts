@@ -1,364 +1,863 @@
 /**
- * Synapse AI Service API Client
- * Utilities for communicating with the Synapse AI backend
+ * Synapse Cognitive Engine Client
+ * Frontend API utilities for Synapse memory infrastructure
  */
 
-const API_URL = process.env.NEXT_PUBLIC_AI_SERVICE_URL || 'http://localhost:8000';
+const API_URL =
+  process.env.NEXT_PUBLIC_AI_SERVICE_URL ||
+  'http://localhost:8000';
 
-interface APIErrorResponse {
-  error: string;
-  detail?: string;
-}
+const SYNAPSE_NAMESPACE =
+  process.env.NEXT_PUBLIC_SYNAPSE_NAMESPACE ||
+  'synapse-web';
 
-interface MemoryItem {
+// =====================================================
+// Types
+// =====================================================
+
+export type MemoryCategory =
+  | 'identity'
+  | 'preference'
+  | 'goal'
+  | 'project'
+  | 'skill'
+  | 'relationship'
+  | 'temporary'
+  | 'conversation';
+
+export type MemoryMode =
+  | 'off'
+  | 'smart'
+  | 'full';
+
+export interface MemoryItem {
   id: string;
+  namespace?: string;
   text: string;
   importance: number;
-  category: string;
+  category: MemoryCategory;
   tags: string[];
   created_at: string;
-  metadata?: Record<string, any>;
+  updated_at?: string;
+  relevance?: number;
+  metadata?: Record<string, unknown>;
+  pinned?: boolean;
+  archived?: boolean;
+  expires_at?: string | null;
+  expired?: boolean;
+  access_count?: number;
 }
 
-interface QueryResult {
-  memory_id: string;
+export interface RetrievalResult {
+  id: string;
+  namespace?: string;
   text: string;
+  category: MemoryCategory;
   relevance: number;
-  category: string;
-  importance?: number;
+  importance: number;
+  score?: number;
+  rerank_score?: number;
+  tags?: string[];
+  pinned?: boolean;
+  created_at?: string;
+  keyword_score?: number;
+  freshness_score?: number;
+  temporal_match?: boolean;
 }
 
-interface AIQueryResponse {
+export interface RetrievalPresentation {
+  title: string;
+  items: Array<{
+    id?: string;
+    line: string;
+    text: string;
+    category: string;
+    confidence: string;
+    relevance_percent: number;
+    importance: number;
+    pinned?: boolean;
+    created_at?: string;
+    tags?: string[];
+  }>;
+  count: number;
+  empty_message: string;
+}
+
+export interface RetrievalResponse {
   query: string;
-  results: QueryResult[];
-  context_summary: string;
-  total_results: number;
+  result_count: number;
+  intent?: string;
+  relevant_memories: Record<
+    string,
+    RetrievalResult[]
+  >;
+  context_summary: {
+    total_sections: number;
+    memory_count: number;
+  };
+  compressed_context?: {
+    text?: string;
+    sections?: Array<{
+      section: string;
+      count: number;
+      summary: string;
+      highlights: string[];
+    }>;
+  };
+  results: RetrievalResult[];
+  presentation?: RetrievalPresentation;
+  relationships?: Array<{
+    memory_id: string;
+    related_memory_ids: string[];
+  }>;
+  applied_filters?: {
+    category?: string | null;
+    tags?: string[];
+    include_archived?: boolean;
+    temporal_range?: {
+      label?: string;
+      start?: string;
+      end?: string;
+    } | null;
+  };
 }
 
-interface UserProfile {
-  user_id: string;
-  personality_traits: Record<string, any>;
-  preferences: Record<string, any>;
-  memory_count: number;
-  last_updated: string;
+export interface SavedQuery {
+  id: string;
+  name: string;
+  query: string;
+  category?: string | null;
+  tags: string[];
+  topK: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-/**
- * Get JWT token from localStorage
- */
-function getToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('synapse_token');
+export interface HealthResponse {
+  status: string;
+  service: string;
+  started_at?: string;
+
+  cognition_stack?: {
+    embedding_model?: {
+      loaded: boolean;
+      model: string;
+      vector_size: number;
+    };
+
+    reranker_model?: {
+      loaded: boolean;
+      model: string;
+    };
+  };
+
+  infrastructure?: {
+    qdrant?: {
+      connected: boolean;
+      collection?: string;
+    };
+
+    redis?: {
+      connected: boolean;
+    };
+  };
 }
 
-function base64UrlDecode(input: string): string {
-  const base64 = input.replace(/-/g, '+').replace(/_/g, '/');
-  const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=');
-  const binary = atob(padded);
-  const chars = [...binary].map((char) => `%${char.charCodeAt(0).toString(16).padStart(2, '0')}`);
-  return decodeURIComponent(chars.join(''));
+export interface ModelResponse {
+  status: string;
+
+  models: {
+    embedding: {
+      name: string;
+      loaded: boolean;
+      vector_size: number;
+    };
+
+    reranker: {
+      name: string;
+      loaded: boolean;
+    };
+  };
 }
 
-function decodeJwtPayload(token: string): Record<string, any> | null {
-  const parts = token.split('.');
-  if (parts.length !== 3) return null;
+// =====================================================
+// Token Helpers
+// =====================================================
 
+function getToken():
+  | string
+  | null {
+  if (
+    typeof window ===
+    'undefined'
+  ) {
+    return null;
+  }
+
+  return localStorage.getItem(
+    'synapse_token'
+  );
+}
+
+function base64UrlDecode(
+  input: string
+): string {
+  const base64 = input
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
+
+  const padded = base64.padEnd(
+    base64.length +
+      ((4 -
+        (base64.length % 4)) %
+        4),
+    '='
+  );
+
+  const binary = atob(
+    padded
+  );
+
+  const chars = [...binary].map(
+    (char) =>
+      `%${char.charCodeAt(0)
+        .toString(16)
+        .padStart(2, '0')}`
+  );
+
+  return decodeURIComponent(
+    chars.join('')
+  );
+}
+
+function decodeJwtPayload(
+  token: string
+):
+  | Record<
+      string,
+      unknown
+    >
+  | null {
   try {
-    const payload = base64UrlDecode(parts[1]);
-    return JSON.parse(payload);
+    const parts =
+      token.split('.');
+
+    if (parts.length !== 3) {
+      return null;
+    }
+
+    return JSON.parse(
+      base64UrlDecode(
+        parts[1]
+      )
+    );
   } catch {
     return null;
   }
 }
 
-function getUserIdFromToken(): string | null {
+export function getUserId():
+  | string
+  | null {
   const token = getToken();
-  if (!token) return null;
 
-  const decoded = decodeJwtPayload(token);
-  if (!decoded || typeof decoded !== 'object') return null;
+  if (!token) {
+    return null;
+  }
 
-  return typeof decoded.userId === 'string' ? decoded.userId : null;
+  const payload =
+    decodeJwtPayload(token);
+
+  if (
+    !payload ||
+    typeof payload !==
+      'object'
+  ) {
+    return null;
+  }
+
+  return typeof payload.userId ===
+    'string'
+    ? payload.userId
+    : null;
 }
 
-function buildHeaders({ auth = false, json = false }: { auth?: boolean; json?: boolean } = {}) {
-  const headers: Record<string, string> = {};
+// =====================================================
+// Headers
+// =====================================================
+
+function buildHeaders({
+  auth = false,
+  json = false,
+  namespace = false,
+}: {
+  auth?: boolean;
+  json?: boolean;
+  namespace?: boolean;
+} = {}) {
+  const headers: Record<
+    string,
+    string
+  > = {};
+
   const token = getToken();
 
   if (auth) {
-    if (!token) throw new Error('Not authenticated');
-    headers.Authorization = `Bearer ${token}`;
-    const userId = getUserIdFromToken();
-    if (userId) {
-      headers['X-User-ID'] = userId;
+    if (!token) {
+      throw new Error(
+        'Not authenticated'
+      );
     }
+
+    headers.Authorization = `Bearer ${token}`;
   }
 
   if (json) {
-    headers['Content-Type'] = 'application/json';
+    headers[
+      'Content-Type'
+    ] = 'application/json';
+  }
+
+  if (namespace) {
+    headers[
+      'X-Synapse-Namespace'
+    ] = SYNAPSE_NAMESPACE;
   }
 
   return headers;
 }
 
-/**
- * Handle API response and errors
- */
-async function handleResponse<T>(response: Response): Promise<T> {
+// =====================================================
+// Response Handler
+// =====================================================
+
+async function handleResponse<T>(
+  response: Response
+): Promise<T> {
+  const data =
+    await response.json();
+
   if (!response.ok) {
-    const error: APIErrorResponse = await response.json();
-    throw new Error(error.error || `API Error: ${response.status}`);
+    throw new Error(
+      data?.detail ||
+        data?.error ||
+        'Request failed'
+    );
   }
-  return response.json() as Promise<T>;
+
+  return data as T;
 }
 
-/**
- * Create a new memory
- */
+// =====================================================
+// Memory APIs
+// =====================================================
+
 export async function createMemory(
-  text: string,
-  importance: number = 0.5,
-  category: string = 'general',
-  tags: string[] = [],
-  metadata: Record<string, any> = {}
-): Promise<MemoryItem> {
-  const response = await fetch(`${API_URL}/memory/`, {
-    method: 'POST',
-    headers: buildHeaders({ auth: true, json: true }),
-    body: JSON.stringify({
-      text,
-      importance,
-      category,
-      tags,
-      metadata,
-    }),
-  });
-
-  return handleResponse<MemoryItem>(response);
-}
-
-/**
- * Get all memories with optional pagination and filters
- */
-export async function getMemories(
-  skip: number = 0,
-  limit: number = 10,
-  category?: string,
-  tags?: string[]
-): Promise<{ memories: MemoryItem[]; total: number }> {
-  const params = new URLSearchParams({
-    skip: skip.toString(),
-    limit: limit.toString(),
-  });
-
-  if (category) params.append('category', category);
-  if (tags && tags.length > 0) params.append('tags', tags.join(','));
-
-  const response = await fetch(`${API_URL}/memory/?${params}`, {
-    headers: buildHeaders({ auth: true }),
-  });
-
-  return handleResponse<{ memories: MemoryItem[]; total: number }>(response);
-}
-
-/**
- * Get a specific memory by ID
- */
-export async function getMemory(id: string): Promise<MemoryItem> {
-  const response = await fetch(`${API_URL}/memory/${id}`, {
-    headers: buildHeaders({ auth: true }),
-  });
-
-  return handleResponse<MemoryItem>(response);
-}
-
-/**
- * Update a memory
- */
-export async function updateMemory(
-  id: string,
-  updates: Partial<MemoryItem>
-): Promise<MemoryItem> {
-  const response = await fetch(`${API_URL}/memory/${id}`, {
-    method: 'PUT',
-    headers: buildHeaders({ auth: true, json: true }),
-    body: JSON.stringify(updates),
-  });
-
-  return handleResponse<MemoryItem>(response);
-}
-
-/**
- * Delete a memory
- */
-export async function deleteMemory(id: string): Promise<void> {
-  const response = await fetch(`${API_URL}/memory/${id}`, {
-    method: 'DELETE',
-    headers: buildHeaders({ auth: true }),
-  });
-
-  if (!response.ok) {
-    throw new Error('Failed to delete memory');
+  payload: {
+    text: string;
+    importance?: number;
+    category?: MemoryCategory;
+    tags?: string[];
+    metadata?: Record<
+      string,
+      unknown
+    >;
   }
-}
-
-/**
- * Query memories with semantic search and context retrieval
- */
-export async function queryMemories(
-  query: string,
-  topK: number = 5,
-  userId?: string
-): Promise<AIQueryResponse> {
-  const response = await fetch(`${API_URL}/ai/query`, {
-    method: 'POST',
-    headers: buildHeaders({ auth: true, json: true }),
-    body: JSON.stringify({
-      query,
-      top_k: topK,
-      user_id: userId,
-    }),
-  });
-
-  return handleResponse<AIQueryResponse>(response);
-}
-
-/**
- * Get user personality profile and preferences
- */
-export async function getUserProfile(userId: string): Promise<UserProfile> {
-  const response = await fetch(`${API_URL}/ai/profile/${userId}`, {
-    headers: buildHeaders({ auth: true }),
-  });
-
-  return handleResponse<UserProfile>(response);
-}
-
-/**
- * Get text embedding
- */
-export async function getEmbedding(text: string): Promise<{
-  text: string;
-  embedding: number[];
-  dimension: number;
-  model: string;
-}> {
-  const response = await fetch(`${API_URL}/embedding/embed`, {
-    method: 'POST',
-    headers: buildHeaders({ auth: true, json: true }),
-    body: JSON.stringify({ text }),
-  });
+) {
+  const response =
+    await fetch(
+      `${API_URL}/memory/`,
+      {
+        method: 'POST',
+        headers:
+          buildHeaders({
+            auth: true,
+            json: true,
+            namespace: true,
+          }),
+        body: JSON.stringify(
+          payload
+        ),
+      }
+    );
 
   return handleResponse<{
-    text: string;
+    success: boolean;
+    memory: MemoryItem;
+  }>(response);
+}
+
+export async function getMemories(
+  options?: {
+    category?: string;
+    tags?: string[];
+    limit?: number;
+    include_archived?: boolean;
+    archived_only?: boolean;
+  }
+) {
+  const params =
+    new URLSearchParams();
+
+  if (
+    options?.category
+  ) {
+    params.append(
+      'category',
+      options.category
+    );
+  }
+
+  if (
+    options?.tags?.length
+  ) {
+    params.append(
+      'tags',
+      options.tags.join(',')
+    );
+  }
+
+  if (
+    options?.limit
+  ) {
+    params.append(
+      'limit',
+      String(
+        options.limit
+      )
+    );
+  }
+
+  if (options?.include_archived) {
+    params.append('include_archived', 'true');
+  }
+
+  if (options?.archived_only) {
+    params.append('archived_only', 'true');
+  }
+
+  const response =
+    await fetch(
+      `${API_URL}/memory/?${params}`,
+      {
+        headers:
+          buildHeaders({
+            auth: true,
+            namespace: true,
+          }),
+      }
+    );
+
+  return handleResponse<{
+    success: boolean;
+    memories: MemoryItem[];
+    count: number;
+  }>(response);
+}
+
+export async function updateMemory(
+  memoryId: string,
+  updates: Partial<MemoryItem>
+) {
+  const response =
+    await fetch(
+      `${API_URL}/memory/${memoryId}`,
+      {
+        method: 'PUT',
+        headers:
+          buildHeaders({
+            auth: true,
+            json: true,
+            namespace: true,
+          }),
+        body: JSON.stringify(
+          updates
+        ),
+      }
+    );
+
+  return handleResponse<{
+    success: boolean;
+    memory: MemoryItem;
+  }>(response);
+}
+
+export async function deleteMemory(
+  memoryId: string
+) {
+  const response =
+    await fetch(
+      `${API_URL}/memory/${memoryId}`,
+      {
+        method: 'DELETE',
+        headers:
+          buildHeaders({
+            auth: true,
+            namespace: true,
+          }),
+      }
+    );
+
+  return handleResponse<{
+    success: boolean;
+    deleted: boolean;
+  }>(response);
+}
+
+export async function pinMemory(
+  memoryId: string
+) {
+  const response =
+    await fetch(
+      `${API_URL}/memory/${memoryId}/pin`,
+      {
+        method: 'POST',
+        headers:
+          buildHeaders({
+            auth: true,
+            namespace: true,
+          }),
+      }
+    );
+
+  return handleResponse<{
+    success: boolean;
+    memory: MemoryItem;
+  }>(response);
+}
+
+export async function archiveMemory(
+  memoryId: string
+) {
+  const response =
+    await fetch(
+      `${API_URL}/memory/${memoryId}/archive`,
+      {
+        method: 'POST',
+        headers:
+          buildHeaders({
+            auth: true,
+            namespace: true,
+          }),
+      }
+    );
+
+  return handleResponse<{
+    success: boolean;
+    memory: MemoryItem;
+  }>(response);
+}
+
+export async function unarchiveMemory(
+  memoryId: string
+) {
+  const response =
+    await fetch(
+      `${API_URL}/memory/${memoryId}/unarchive`,
+      {
+        method: 'POST',
+        headers:
+          buildHeaders({
+            auth: true,
+            namespace: true,
+          }),
+      }
+    );
+
+  return handleResponse<{
+    success: boolean;
+    memory: MemoryItem;
+  }>(response);
+}
+
+export async function unpinMemory(
+  memoryId: string
+) {
+  const response =
+    await fetch(
+      `${API_URL}/memory/${memoryId}/unpin`,
+      {
+        method: 'POST',
+        headers:
+          buildHeaders({
+            auth: true,
+            namespace: true,
+          }),
+      }
+    );
+
+  return handleResponse<{
+    success: boolean;
+    memory: MemoryItem;
+  }>(response);
+}
+
+// =====================================================
+// Retrieval APIs
+// =====================================================
+
+export async function searchMemories(
+  query: string,
+  topK: number = 10,
+  options?: {
+    category?: string;
+    tags?: string[];
+    include_archived?: boolean;
+    include_working_memory?: boolean;
+  }
+) {
+  const response =
+    await fetch(
+      `${API_URL}/retrieval/search`,
+      {
+        method: 'POST',
+        headers:
+          buildHeaders({
+            auth: true,
+            json: true,
+            namespace: true,
+          }),
+        body: JSON.stringify(
+          {
+            query,
+            top_k: topK,
+            category:
+              options?.category,
+            tags:
+              options?.tags,
+            include_archived:
+              options?.include_archived ??
+              false,
+            include_working_memory:
+              options?.include_working_memory ??
+              true,
+          }
+        ),
+      }
+    );
+
+  const result =
+    await handleResponse<{
+    success: boolean;
+    data: RetrievalResponse;
+  }>(response);
+
+  return result.data;
+}
+
+export async function queryMemories(
+  query: string,
+  topK: number = 10,
+  options?: {
+    category?: string;
+    tags?: string[];
+    include_archived?: boolean;
+    include_working_memory?: boolean;
+  }
+) {
+  return searchMemories(
+    query,
+    topK,
+    options
+  );
+}
+
+// =====================================================
+// Extraction APIs
+// =====================================================
+
+export async function extractMemory(
+  text: string,
+  mode: MemoryMode = 'smart'
+) {
+  const response =
+    await fetch(
+      `${API_URL}/ai/extract-memory`,
+      {
+        method: 'POST',
+        headers:
+          buildHeaders({
+            auth: true,
+            json: true,
+            namespace: true,
+          }),
+        body: JSON.stringify(
+          {
+            text,
+            mode,
+          }
+        ),
+      }
+    );
+
+  return handleResponse<{
+    mode: MemoryMode;
+    stored: MemoryItem[];
+    extracted: unknown[];
+    count: number;
+  }>(response);
+}
+
+// =====================================================
+// Embedding APIs
+// =====================================================
+
+export async function getEmbedding(
+  text: string
+) {
+  const response =
+    await fetch(
+      `${API_URL}/embed`,
+      {
+        method: 'POST',
+        headers:
+          buildHeaders({
+            auth: true,
+            json: true,
+            namespace: true,
+          }),
+        body: JSON.stringify(
+          {
+            text,
+          }
+        ),
+      }
+    );
+
+  return handleResponse<{
+    success: boolean;
     embedding: number[];
     dimension: number;
     model: string;
   }>(response);
 }
 
-/**
- * Get AI service health status
- */
-export async function getHealthStatus(): Promise<{ status: string; message?: string }> {
-  const response = await fetch(`${API_URL}/health`, {
-    headers: { 'Content-Type': 'application/json' },
-  });
+// =====================================================
+// Health APIs
+// =====================================================
 
-  return handleResponse<{ status: string; message?: string }>(response);
+export async function getHealthStatus() {
+  const response =
+    await fetch(
+      `${API_URL}/health`,
+      {
+        headers:
+          buildHeaders(),
+      }
+    );
+
+  return handleResponse<HealthResponse>(
+    response
+  );
 }
 
-/**
- * Search memories
- */
-export async function searchMemories(
-  query: string,
-  limit: number = 10
-): Promise<MemoryItem[]> {
-  const response = await fetch(`${API_URL}/retrieval/search`, {
-    method: 'POST',
-    headers: buildHeaders({ auth: true, json: true }),
-    body: JSON.stringify({
-      query,
-      limit,
-    }),
-  });
+export async function getModels() {
+  const response =
+    await fetch(
+      `${API_URL}/model`,
+      {
+        headers:
+          buildHeaders(),
+      }
+    );
 
-  const data = await handleResponse<{ results: MemoryItem[] }>(response);
-  return data.results;
+  return handleResponse<ModelResponse>(
+    response
+  );
 }
 
-/**
- * Get memory statistics
- */
-export async function getMemoryStats(): Promise<{
-  total_memories: number;
-  categories: Record<string, number>;
-  average_importance: number;
-  memory_by_date: Record<string, number>;
-}> {
-  const response = await fetch(`${API_URL}/ai/stats`, {
-    headers: buildHeaders({ auth: true }),
-  });
+// =====================================================
+// Stats APIs
+// =====================================================
+
+export async function getMemoryStats() {
+  const response =
+    await fetch(
+      `${API_URL}/ai/stats`,
+      {
+        headers:
+          buildHeaders({
+            auth: true,
+            namespace: true,
+          }),
+      }
+    );
 
   return handleResponse<{
+    success: boolean;
     total_memories: number;
-    categories: Record<string, number>;
+    episodic_memories: number;
+    semantic_memories: number;
+    compressed_memories: number;
+    working_memories: number;
+    categories: Record<
+      string,
+      number
+    >;
+    pinned_memories: number;
     average_importance: number;
-    memory_by_date: Record<string, number>;
   }>(response);
 }
 
-/**
- * Compress old memories
- */
-export async function compressMemories(): Promise<{
-  compressed_count: number;
-  total_savings: number;
-  message: string;
-}> {
-  const response = await fetch(`${API_URL}/ai/compress`, {
-    method: 'POST',
-    headers: buildHeaders({ auth: true, json: true }),
-  });
+// =====================================================
+// Saved Query APIs
+// =====================================================
+
+export async function getSavedQueries() {
+  const response = await fetch(
+    '/api/auth/saved-queries',
+    {
+      headers: buildHeaders({
+        auth: true,
+      }),
+      cache: 'no-store',
+    }
+  );
 
   return handleResponse<{
-    compressed_count: number;
-    total_savings: number;
-    message: string;
+    savedQueries: SavedQuery[];
   }>(response);
 }
 
-export type LLMProvider = 'local' | 'openai' | 'claude' | 'ollama' | 'huggingface';
+export async function saveQuery(payload: {
+  name: string;
+  query: string;
+  category?: string | null;
+  tags?: string[];
+  topK?: number;
+}) {
+  const response = await fetch(
+    '/api/auth/saved-queries',
+    {
+      method: 'POST',
+      headers: buildHeaders({
+        auth: true,
+        json: true,
+      }),
+      body: JSON.stringify(payload),
+    }
+  );
 
-export interface ChatPayload {
-  provider: LLMProvider;
-  prompt: string;
-  top_k?: number;
-  use_memory?: boolean;
-  model?: string;
+  return handleResponse<{
+    success: boolean;
+    savedQuery: SavedQuery;
+  }>(response);
 }
 
-export interface ChatResponse {
-  provider: string;
-  model: string;
-  prompt: string;
-  use_memory?: boolean;
-  memory_context?: string;
-  response?: string;
-  result?: any;
-  raw?: any;
-}
+export async function deleteSavedQuery(id: string) {
+  const response = await fetch(
+    `/api/auth/saved-queries?id=${encodeURIComponent(id)}`,
+    {
+      method: 'DELETE',
+      headers: buildHeaders({
+        auth: true,
+      }),
+    }
+  );
 
-export async function chatWithProvider(payload: ChatPayload): Promise<ChatResponse> {
-  const response = await fetch('/api/ai/llm', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    credentials: 'same-origin',
-    body: JSON.stringify(payload),
-  });
-
-  return handleResponse<ChatResponse>(response);
+  return handleResponse<{
+    success: boolean;
+    deleted: boolean;
+    id: string;
+  }>(response);
 }

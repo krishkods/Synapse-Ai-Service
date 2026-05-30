@@ -106,8 +106,8 @@ export default function LoginPage() {
             </h2>
 
             <p className="mt-8 max-w-xl text-lg leading-8 text-[#5f5545]">
-              Connect users, memories, and multiple AI models through a unified
-              semantic intelligence layer.
+              Connect users and semantic memory through a unified retrieval-first
+              intelligence layer.
             </p>
           </div>
 
@@ -126,8 +126,8 @@ export default function LoginPage() {
               },
               {
                 icon: Sparkles,
-                title: 'Cross-Model Intelligence',
-                desc: 'Shared continuity between GPT, Claude, Gemini, Ollama, and Hugging Face.',
+                title: 'Structured Retrieval',
+                desc: 'Shared continuity through memory storage, retrieval, and orchestration.',
               },
             ].map((item) => {
               const Icon = item.icon;

@@ -5,8 +5,7 @@ Synapse Web is the frontend portal for your Synapse AI service. It includes:
 - Landing page and product overview
 - JWT-based authentication with MongoDB / Mongoose user storage
 - Developer documentation and AI service proxy integration
-- Direct LLM chat support for OpenAI, Claude, Ollama, Hugging Face, local memory, and custom models
-- Dashboard for authenticated users to query the Synapse AI backend
+- Dashboard for authenticated users to manage memory and query the Synapse AI backend
 
 ## Getting started
 
@@ -28,6 +27,8 @@ cp .env.example .env.local
 MONGODB_URI=mongodb://localhost:27017/synapse-web
 JWT_SECRET=replace_with_a_strong_secret
 SYNAPSE_AI_SERVICE_URL=http://localhost:8000
+SYNAPSE_AI_PROXY_SECRET=replace_with_a_shared_proxy_secret
+NEXT_PUBLIC_SYNAPSE_NAMESPACE=synapse-web
 ```
 
 4. Run the development server:
@@ -51,7 +52,10 @@ http://localhost:3000
 - `app/docs/page.tsx` - Synapse documentation and integration guide
 - `app/api/auth/*` - auth API routes using Mongoose and JWT
 - `app/api/ai/proxy/route.ts` - proxies AI queries to the Synapse AI service
-- `models/User.ts` - user schema and model
+- `app/api/developer/*` - API key-protected developer endpoints
+- `models/User.ts` - user schema and plan model
+- `models/ApiKey.ts` - namespace-scoped API keys
+- `models/UsageCounter.ts` - Mongo-backed plan usage counters
 - `lib/mongoose.ts` - persistent Mongoose connection helper
 - `lib/auth.ts` - JWT signing and verification utilities
 
@@ -87,28 +91,35 @@ curl -X POST http://localhost:3000/api/ai/proxy \
   -d '{"query":"Explain how Synapse works","user_id":"<user-id>"}'
 ```
 
-### Direct LLM chat
+### Developer ingest with an API key
+
+Create an account, sign in, generate a key from `/profile`, then call:
 
 ```bash
-curl -X POST http://localhost:3000/api/ai/llm \
+curl -X POST http://localhost:3000/api/developer/ingest \
   -H "Content-Type: application/json" \
-  -d '{"provider":"openai","prompt":"Summarize my current project goals.","use_memory":true,"top_k":5,"model":"gpt-4o-mini"}'
+  -H "X-API-Key: <your-api-key>" \
+  -d '{"namespace":"career-coach-app","userId":"user-123","source":"chat","content":"User is preparing for React Native interviews"}'
 ```
 
-### LLM provider environment variables
+### Memory-only scope
 
-```env
-OPENAI_API_KEY=your-openai-key
-ANTHROPIC_API_KEY=your-anthropic-key
-OLLAMA_API_BASE=http://localhost:11434
-HUGGINGFACE_API_KEY=your-hf-key
-HUGGINGFACE_API_BASE=https://api-inference.huggingface.co/models
-```
+Synapse Web currently ships as a memory-first product:
+
+- authenticated memory management
+- semantic retrieval
+- structured context orchestration
+- health and status monitoring
 
 ## Integrating with Synapse AI service
 
 Set `SYNAPSE_AI_SERVICE_URL` to the URL of your Synapse AI backend. The dashboard sends queries through the proxy route,
 so your web app and AI service can stay separated by host and port.
+
+For developer API traffic, set the same shared proxy secret in both services:
+
+- `synapse-web`: `SYNAPSE_AI_PROXY_SECRET`
+- `synapse-ai-service`: `SYNAPSE_TRUSTED_PROXY_SECRET`
 
 ## Next steps
 
@@ -116,3 +127,4 @@ so your web app and AI service can stay separated by host and port.
 - Add a production JWT secret
 - Extend the dashboard with user memory and personalization
 - Add analytics on top of the AI query proxy
+- Add a real email delivery provider for password reset

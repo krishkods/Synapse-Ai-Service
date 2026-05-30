@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import dbConnect from "@/lib/mongoose";
 import User from "@/models/User";
 import { verifyToken } from "@/lib/auth";
-import DashboardClient from "../components/DashboardClient";
+import DashboardClient from "../components/DashboardClientNew";
 import SignOutButton from "../components/SignOutButton";
 
 export default async function DashboardPage() {
@@ -32,8 +32,8 @@ export default async function DashboardPage() {
         <div className="flex flex-col gap-4 rounded-3xl border border-slate-800/70 bg-slate-900/80 p-8 shadow-2xl shadow-slate-950/30">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-3xl font-semibold text-white">🧠 Synapse Dashboard</h1>
-              <p className="text-slate-400 mt-2">Manage memories, query the AI service, and personalize your experience.</p>
+              <h1 className="text-3xl font-semibold text-white">🧠 Synapse Cognitive Memory</h1>
+              <p className="text-slate-400 mt-2">Manual-input semantic memory storage, reranked retrieval, and structured context orchestration.</p>
             </div>
             <SignOutButton />
           </div>
@@ -45,7 +45,7 @@ export default async function DashboardPage() {
                 <p className="mt-2 text-xl font-semibold text-white">{user.name}</p>
                 <p className="text-sm text-slate-400">{user.email}</p>
               </div>
-              <p className="text-sm text-slate-400">Member since {new Date(user.createdAt).toLocaleDateString()}</p>
+              <p className="text-sm text-slate-400">Member since {new Date(user.createdAt).toLocaleDateString('en-US')}</p>
             </div>
           </div>
         </div>

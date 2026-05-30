@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 import dbConnect from "@/lib/mongoose";
 import User from "@/models/User";
@@ -10,7 +11,8 @@ export async function POST(request: Request) {
   if (newPassword.length < 8) return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 });
 
   await dbConnect();
-  const user = await User.findOne({ resetToken: token, resetExpires: { $gt: new Date() } });
+  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+  const user = await User.findOne({ resetToken: tokenHash, resetExpires: { $gt: new Date() } });
   if (!user) return NextResponse.json({ error: "Invalid or expired token" }, { status: 400 });
 
   user.passwordHash = await bcrypt.hash(newPassword, 10);

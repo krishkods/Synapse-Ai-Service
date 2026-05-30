@@ -12,12 +12,17 @@ export async function POST(request: Request) {
   const user = await User.findOne({ email: email.toLowerCase().trim() });
   if (!user) return NextResponse.json({ ok: true }); // don't reveal user existence
 
-  // create reset token
+  // Store only a digest so a database leak does not expose usable reset tokens.
   const token = crypto.randomBytes(32).toString("hex");
-  user.resetToken = token;
+  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+  user.resetToken = tokenHash;
   user.resetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
   await user.save();
 
-  // In production, email the token. For now, return it for dev/testing.
-  return NextResponse.json({ ok: true, resetToken: token });
+  // Never return reset tokens in the API response.
+  // The next production step is to deliver `token` through a mail provider.
+  return NextResponse.json({
+    ok: true,
+    message: "If an account exists for that email, password reset instructions will be sent.",
+  });
 }

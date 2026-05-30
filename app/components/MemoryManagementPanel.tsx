@@ -1,6 +1,20 @@
 'use client';
 
-import { useState } from "react";
+import { useMemo, useState } from 'react';
+
+import {
+  Activity,
+  Brain,
+  CheckCircle2,
+  Database,
+  Layers3,
+  Loader2,
+  MemoryStick,
+  Network,
+  Sparkles,
+  TriangleAlert,
+  Zap,
+} from 'lucide-react';
 
 type MemoryStats = {
   total_memories: number;
@@ -12,125 +26,616 @@ type MemoryStats = {
 
 type MemoryClusters = {
   cluster_count: number;
-  clusters: Record<string, string[]>;
+  clusters: Record<
+    string,
+    string[]
+  >;
 };
 
-export default function MemoryManagementPanel({ userId }: { userId: string }) {
-  const [stats, setStats] = useState<MemoryStats | null>(null);
-  const [clusters, setClusters] = useState<MemoryClusters | null>(null);
-  const [log, setLog] = useState<string>("");
+type RuntimeState =
+  | 'idle'
+  | 'loading'
+  | 'success'
+  | 'error';
+
+function getClusterColor(
+  index: number
+) {
+  const colors = [
+    'from-amber-400 to-orange-500',
+    'from-cyan-400 to-blue-500',
+    'from-violet-400 to-purple-500',
+    'from-emerald-400 to-green-500',
+  ];
+
+  return (
+    colors[
+      index %
+        colors.length
+    ] ||
+    colors[0]
+  );
+}
+
+export default function MemoryManagementPanel({
+  userId,
+}: {
+  userId: string;
+}) {
+  const [stats, setStats] =
+    useState<MemoryStats | null>(
+      null
+    );
+
+  const [
+    clusters,
+    setClusters,
+  ] =
+    useState<MemoryClusters | null>(
+      null
+    );
+
+  const [runtimeLog, setRuntimeLog] =
+    useState(
+      'Cognitive runtime idle.'
+    );
+
+  const [state, setState] =
+    useState<RuntimeState>(
+      'idle'
+    );
+
+  const [
+    activeOperation,
+    setActiveOperation,
+  ] = useState<
+    string | null
+  >(null);
+
+  const clusterEntries =
+    useMemo(() => {
+      return Object.entries(
+        clusters?.clusters ||
+          {}
+      );
+    }, [clusters]);
 
   async function loadStats() {
-    setLog("Loading memory stats...");
-    const response = await fetch(`/api/ai/memory/stats?user_id=${encodeURIComponent(userId)}`);
-    const data = await response.json();
-    if (response.ok) {
+    try {
+      setState(
+        'loading'
+      );
+
+      setActiveOperation(
+        'Loading cognitive telemetry...'
+      );
+
+      setRuntimeLog(
+        'Retrieving semantic memory telemetry.'
+      );
+
+      const response =
+        await fetch(
+          `/api/ai/memory/stats?user_id=${encodeURIComponent(
+            userId
+          )}`,
+          {
+            cache:
+              'no-store',
+          }
+        );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
+            'Unable to load stats.'
+        );
+      }
+
       setStats(data);
-      setLog("Memory stats loaded.");
-    } else {
-      setLog(data.error || "Unable to load memory stats.");
+
+      setRuntimeLog(
+        'Cognitive telemetry loaded successfully.'
+      );
+
+      setState(
+        'success'
+      );
+    } catch (
+      err: unknown
+    ) {
+      setRuntimeLog(
+        err instanceof Error
+          ? err.message
+          : 'Telemetry request failed.'
+      );
+
+      setState(
+        'error'
+      );
+    } finally {
+      setActiveOperation(
+        null
+      );
     }
   }
 
   async function loadClusters() {
-    setLog("Loading memory clusters...");
-    const response = await fetch(`/api/ai/memory/clusters?user_id=${encodeURIComponent(userId)}`);
-    const data = await response.json();
-    if (response.ok) {
+    try {
+      setState(
+        'loading'
+      );
+
+      setActiveOperation(
+        'Analyzing semantic topology...'
+      );
+
+      setRuntimeLog(
+        'Generating cognitive cluster map.'
+      );
+
+      const response =
+        await fetch(
+          `/api/ai/memory/clusters?user_id=${encodeURIComponent(
+            userId
+          )}`,
+          {
+            cache:
+              'no-store',
+          }
+        );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
+            'Unable to load clusters.'
+        );
+      }
+
       setClusters(data);
-      setLog("Memory clusters loaded.");
-    } else {
-      setLog(data.error || "Unable to load clusters.");
+
+      setRuntimeLog(
+        'Semantic memory clusters generated.'
+      );
+
+      setState(
+        'success'
+      );
+    } catch (
+      err: unknown
+    ) {
+      setRuntimeLog(
+        err instanceof Error
+          ? err.message
+          : 'Cluster analysis failed.'
+      );
+
+      setState(
+        'error'
+      );
+    } finally {
+      setActiveOperation(
+        null
+      );
     }
   }
 
   async function compressMemory() {
-    setLog("Requesting compression...");
-    const response = await fetch("/api/ai/memory/compress", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ user_id: userId }),
-    });
-    const data = await response.json();
-    if (response.ok) {
-      setLog(`Compressed ${data.compressed_count} memories.`);
+    try {
+      setState(
+        'loading'
+      );
+
+      setActiveOperation(
+        'Compressing semantic memory...'
+      );
+
+      setRuntimeLog(
+        'Running memory compression runtime.'
+      );
+
+      const response =
+        await fetch(
+          '/api/ai/memory/compress',
+          {
+            method:
+              'POST',
+
+            headers: {
+              'Content-Type':
+                'application/json',
+            },
+
+            body: JSON.stringify(
+              {
+                user_id:
+                  userId,
+              }
+            ),
+          }
+        );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
+            'Compression failed.'
+        );
+      }
+
+      setRuntimeLog(
+        `Compressed ${
+          data.compressed_count ||
+          0
+        } memories successfully.`
+      );
+
+      setState(
+        'success'
+      );
+
       await loadStats();
-    } else {
-      setLog(data.error || "Compression failed.");
+    } catch (
+      err: unknown
+    ) {
+      setRuntimeLog(
+        err instanceof Error
+          ? err.message
+          : 'Compression failed.'
+      );
+
+      setState(
+        'error'
+      );
+    } finally {
+      setActiveOperation(
+        null
+      );
     }
   }
 
   return (
-    <section className="rounded-3xl border border-slate-800/70 bg-slate-900/80 p-8 shadow-2xl shadow-slate-950/40">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <section className="rounded-[2.5rem] border border-yellow-200/40 bg-white/80 p-8 shadow-[0_20px_80px_rgba(255,210,90,0.15)] backdrop-blur-2xl">
+      {/* HEADER */}
+      <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
         <div>
-          <h2 className="text-2xl font-semibold text-white">Memory management</h2>
-          <p className="mt-2 text-slate-400">
-            Sync memory analytics with your Synapse AI backend and manage long-term memory intelligently.
+          <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200 bg-yellow-100/70 px-4 py-2 text-sm font-semibold text-amber-800">
+            <Brain className="h-4 w-4" />
+            Cognitive Operations Runtime
+          </div>
+
+          <h2 className="mt-5 text-4xl font-bold tracking-tight text-[#2b2418]">
+            Semantic Memory Operations
+          </h2>
+
+          <p className="mt-4 max-w-3xl text-lg leading-8 text-[#5f5545]">
+            Analyze semantic topology,
+            inspect cognitive telemetry,
+            and orchestrate memory
+            compression across the
+            Synapse runtime.
           </p>
         </div>
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={loadStats}
-            className="rounded-full bg-cyan-400 px-5 py-2 text-sm font-semibold text-slate-950 hover:bg-cyan-300"
-          >
-            Load stats
-          </button>
-          <button
-            type="button"
-            onClick={loadClusters}
-            className="rounded-full border border-slate-700/70 px-5 py-2 text-sm text-slate-200 hover:border-cyan-300"
-          >
-            Load clusters
-          </button>
-          <button
-            type="button"
-            onClick={compressMemory}
-            className="rounded-full bg-slate-800 px-5 py-2 text-sm text-slate-200 hover:bg-slate-700"
-          >
-            Compress memories
-          </button>
-        </div>
-      </div>
 
-      <div className="mt-8 grid gap-6 sm:grid-cols-2">
-        <div className="rounded-3xl border border-slate-800/60 bg-slate-950/70 p-6">
-          <h3 className="text-lg font-semibold text-white">Memory stats</h3>
-          {stats ? (
-            <ul className="mt-4 space-y-3 text-slate-300">
-              <li>Total memories: {stats.total_memories}</li>
-              <li>Episodic: {stats.episodic_memories}</li>
-              <li>Semantic: {stats.semantic_memories}</li>
-              <li>Compressed: {stats.compressed_memories}</li>
-              <li>Average importance: {stats.average_importance.toFixed(2)}</li>
-            </ul>
-          ) : (
-            <p className="mt-4 text-slate-400">Click load stats to view memory metrics.</p>
-          )}
-        </div>
-
-        <div className="rounded-3xl border border-slate-800/60 bg-slate-950/70 p-6">
-          <h3 className="text-lg font-semibold text-white">Memory clusters</h3>
-          {clusters ? (
-            <div className="mt-4 space-y-3 text-slate-300">
-              <p className="text-sm text-slate-400">Cluster count: {clusters.cluster_count}</p>
-              <ul className="list-disc space-y-2 pl-5">
-                {Object.entries(clusters.clusters).map(([name, ids]) => (
-                  <li key={name}>
-                    <span className="font-medium text-white">{name}</span>: {ids.length} memories
-                  </li>
-                ))}
-              </ul>
+        {/* STATUS */}
+        <div className="rounded-[2rem] border border-yellow-200/50 bg-gradient-to-br from-[#fffdf7] to-[#fff5dd] p-6">
+          <div className="flex items-center gap-4">
+            <div
+              className={`flex h-16 w-16 items-center justify-center rounded-3xl ${
+                state ===
+                'error'
+                  ? 'bg-red-100'
+                  : state ===
+                    'loading'
+                  ? 'bg-yellow-100'
+                  : 'bg-green-100'
+              }`}
+            >
+              {state ===
+              'loading' ? (
+                <Loader2 className="h-8 w-8 animate-spin text-yellow-700" />
+              ) : state ===
+                'error' ? (
+                <TriangleAlert className="h-8 w-8 text-red-700" />
+              ) : (
+                <CheckCircle2 className="h-8 w-8 text-green-700" />
+              )}
             </div>
-          ) : (
-            <p className="mt-4 text-slate-400">Click load clusters to view grouped memory insights.</p>
-          )}
+
+            <div>
+              <p className="text-sm text-[#7b6f5c]">
+                Runtime Status
+              </p>
+
+              <h3 className="text-2xl font-bold text-[#2b2418]">
+                {state ===
+                'loading'
+                  ? 'Processing'
+                  : state ===
+                    'error'
+                  ? 'Runtime Error'
+                  : 'Operational'}
+              </h3>
+
+              <p className="mt-1 text-sm text-[#7b6f5c]">
+                {activeOperation ||
+                  runtimeLog}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="mt-6 rounded-3xl border border-slate-800/60 bg-slate-950/70 p-4 text-sm text-slate-300">
-        <p>{log || "No actions taken yet."}</p>
+      {/* ACTIONS */}
+      <div className="mt-10 flex flex-wrap gap-4">
+        <button
+          type="button"
+          onClick={
+            loadStats
+          }
+          disabled={
+            state ===
+            'loading'
+          }
+          className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#fff4c7] to-[#ffe9a6] px-7 py-3 font-semibold text-[#3b3210] shadow-lg transition hover:scale-[1.02] disabled:opacity-60"
+        >
+          <Activity className="h-5 w-5" />
+          Load Telemetry
+        </button>
+
+        <button
+          type="button"
+          onClick={
+            loadClusters
+          }
+          disabled={
+            state ===
+            'loading'
+          }
+          className="inline-flex items-center gap-2 rounded-full border border-yellow-200 bg-yellow-50 px-7 py-3 font-semibold text-[#5f5545] transition hover:bg-yellow-100 disabled:opacity-60"
+        >
+          <Network className="h-5 w-5" />
+          Analyze Clusters
+        </button>
+
+        <button
+          type="button"
+          onClick={
+            compressMemory
+          }
+          disabled={
+            state ===
+            'loading'
+          }
+          className="inline-flex items-center gap-2 rounded-full border border-yellow-200 bg-white px-7 py-3 font-semibold text-[#5f5545] transition hover:bg-yellow-50 disabled:opacity-60"
+        >
+          <Sparkles className="h-5 w-5" />
+          Compress Memory
+        </button>
+      </div>
+
+      {/* TELEMETRY */}
+      <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-5">
+        {[
+          {
+            label:
+              'Total Memories',
+            value:
+              stats
+                ?.total_memories ??
+              0,
+            icon: Brain,
+          },
+          {
+            label:
+              'Episodic',
+            value:
+              stats
+                ?.episodic_memories ??
+              0,
+            icon: Layers3,
+          },
+          {
+            label:
+              'Semantic',
+            value:
+              stats
+                ?.semantic_memories ??
+              0,
+            icon: Database,
+          },
+          {
+            label:
+              'Compressed',
+            value:
+              stats
+                ?.compressed_memories ??
+              0,
+            icon: Zap,
+          },
+          {
+            label:
+              'Avg Importance',
+            value:
+              stats
+                ?.average_importance
+                ? stats.average_importance.toFixed(
+                    2
+                  )
+                : '0.00',
+            icon: MemoryStick,
+          },
+        ].map(
+          (
+            item
+          ) => {
+            const Icon =
+              item.icon;
+
+            return (
+              <div
+                key={
+                  item.label
+                }
+                className="rounded-[2rem] border border-yellow-200/40 bg-gradient-to-br from-[#fffdf7] to-[#fff7e8] p-6"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-[#7b6f5c]">
+                      {
+                        item.label
+                      }
+                    </p>
+
+                    <p className="mt-4 text-5xl font-bold text-[#2b2418]">
+                      {
+                        item.value
+                      }
+                    </p>
+                  </div>
+
+                  <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-yellow-100">
+                    <Icon className="h-8 w-8 text-amber-700" />
+                  </div>
+                </div>
+              </div>
+            );
+          }
+        )}
+      </div>
+
+      {/* CLUSTERS */}
+      <div className="mt-10 rounded-[2rem] border border-yellow-200/40 bg-white/80 p-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-3xl font-bold text-[#2b2418]">
+              Semantic Topology
+            </h3>
+
+            <p className="mt-2 text-[#7b6f5c]">
+              Heuristic semantic
+              clustering across long-term
+              memory structures.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-yellow-100 bg-yellow-50 px-5 py-4">
+            <p className="text-xs uppercase tracking-wide text-[#7b6f5c]">
+              Cluster Count
+            </p>
+
+            <p className="text-3xl font-bold text-[#2b2418]">
+              {clusters
+                ?.cluster_count ??
+                0}
+            </p>
+          </div>
+        </div>
+
+        {!clusters ? (
+          <div className="mt-8 rounded-3xl border border-dashed border-yellow-200 bg-yellow-50/50 p-12 text-center">
+            <Network className="mx-auto h-12 w-12 text-amber-500" />
+
+            <p className="mt-5 text-xl font-semibold text-[#2b2418]">
+              No semantic clusters yet
+            </p>
+
+            <p className="mt-3 text-[#7b6f5c]">
+              Run cluster analysis to
+              inspect semantic memory
+              topology.
+            </p>
+          </div>
+        ) : (
+          <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            {clusterEntries.map(
+              (
+                [
+                  name,
+                  ids,
+                ],
+                index
+              ) => (
+                <div
+                  key={name}
+                  className="overflow-hidden rounded-[2rem] border border-yellow-100 bg-gradient-to-br from-[#fffdf7] to-[#fff7e8]"
+                >
+                  <div
+                    className={`h-2 bg-gradient-to-r ${getClusterColor(
+                      index
+                    )}`}
+                  />
+
+                  <div className="p-6">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xl font-bold text-[#2b2418]">
+                        {name}
+                      </h4>
+
+                      <div className="rounded-full border border-yellow-200 bg-white px-3 py-1 text-xs text-[#5f5545]">
+                        {
+                          ids.length
+                        }{' '}
+                        memories
+                      </div>
+                    </div>
+
+                    <div className="mt-6 space-y-3">
+                      {ids
+                        .slice(
+                          0,
+                          5
+                        )
+                        .map(
+                          (
+                            id
+                          ) => (
+                            <div
+                              key={
+                                id
+                              }
+                              className="rounded-2xl border border-yellow-100 bg-white/70 px-4 py-3"
+                            >
+                              <p className="truncate text-sm text-[#5f5545]">
+                                {
+                                  id
+                                }
+                              </p>
+                            </div>
+                          )
+                        )}
+                    </div>
+                  </div>
+                </div>
+              )
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* RUNTIME LOG */}
+      <div className="mt-10 rounded-[2rem] border border-yellow-200/40 bg-gradient-to-br from-[#fffdf7] to-[#fff5dd] p-6">
+        <div className="flex items-center gap-3">
+          <Activity className="h-6 w-6 text-amber-700" />
+
+          <h3 className="text-xl font-bold text-[#2b2418]">
+            Runtime Log
+          </h3>
+        </div>
+
+        <div className="mt-5 rounded-3xl border border-yellow-100 bg-white/70 p-5">
+          <p className="leading-7 text-[#5f5545]">
+            {runtimeLog}
+          </p>
+        </div>
       </div>
     </section>
   );

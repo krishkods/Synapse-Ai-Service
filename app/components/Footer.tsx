@@ -65,6 +65,7 @@ export default function Footer() {
             <div className="mt-5 flex flex-col gap-4">
               <FooterLink href="/" label="Home" />
               <FooterLink href="/docs" label="Documentation" />
+              <FooterLink href="/pricing" label="Pricing" />
               <FooterLink href="/dashboard" label="Dashboard" />
               <FooterLink href="/status" label="Status" />
             </div>
@@ -104,6 +105,7 @@ export default function Footer() {
 
               <FooterLink href="/" label="Platform Overview" />
               <FooterLink href="/docs" label="Quick Start" />
+              <FooterLink href="/pricing" label="Usage Limits" />
             </div>
           </div>
         </div>

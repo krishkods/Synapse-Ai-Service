@@ -110,8 +110,8 @@ export default function RegisterPage() {
             </h2>
 
             <p className="mt-8 max-w-xl text-lg leading-8 text-[#5f5545]">
-              Synapse connects users, semantic memory, and multiple AI models
-              into one intelligent ecosystem.
+              Synapse connects users and semantic memory into one retrieval-first
+              intelligence system.
             </p>
           </div>
 
@@ -125,8 +125,8 @@ export default function RegisterPage() {
               },
               {
                 icon: Network,
-                title: 'Cross-Model Continuity',
-                desc: 'Shared memory across GPT, Claude, Gemini, Ollama, and Hugging Face.',
+                title: 'Retrieval-First Continuity',
+                desc: 'Shared memory across sessions through semantic retrieval and structured context.',
               },
               {
                 icon: ShieldCheck,

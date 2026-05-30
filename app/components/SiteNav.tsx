@@ -83,13 +83,13 @@ export default function SiteNav() {
           {/* NAV LINKS */}
           <div className="hidden items-center gap-7 md:flex">
             <NavLink href="/docs" label="Docs" />
+            <NavLink href="/pricing" label="Pricing" />
             <NavLink href="/status" label="Status" />
 
             {user && (
               <>
                 <NavLink href="/dashboard" label="Dashboard" />
-                <NavLink href="/chat" label="Chat" />
-                <NavLink href="/profile" label="Profile" />
+                <NavLink href="https://www.npmjs.com/package/@khareindustries/synapse-sdk" label="SDK" />
               </>
             )}
           </div>
@@ -100,7 +100,7 @@ export default function SiteNav() {
           {user ? (
             <div className="flex items-center gap-4">
               {/* USER */}
-              <div className="hidden items-center gap-3 rounded-full border border-yellow-100/10 bg-white/[0.03] px-4 py-2 sm:flex">
+              <Link href={'/profile'} className="hidden items-center gap-3 rounded-full border border-yellow-100/10 bg-white/[0.03] px-4 py-2 sm:flex">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-[#fff7cc] to-[#fff1a6] text-sm font-semibold text-[#3b3210]">
                   {user.name.charAt(0).toUpperCase()}
                 </div>
@@ -114,7 +114,7 @@ export default function SiteNav() {
                     {user.name}
                   </span>
                 </div>
-              </div>
+              </Link>
 
               {/* SIGN OUT */}
               <div className="rounded-full border border-yellow-100/10 bg-yellow-50/[0.03] px-2 py-1 backdrop-blur-md">
@@ -152,14 +152,17 @@ export default function SiteNav() {
 function NavLink({
   href,
   label,
+  target,
 }: {
   href: string;
   label: string;
+  target?: string;
 }) {
   return (
     <Link
       href={href}
       className="group relative text-sm font-medium text-yellow-50/65 transition duration-300 hover:text-yellow-100"
+      target={target || (href.startsWith('http') ? '_blank' : undefined)}
     >
       {label}
 

@@ -16,7 +16,6 @@ import {
   Boxes,
   CheckCircle2,
   Sparkles,
-  Bot,
 } from 'lucide-react';
 
 const quickLinks = [
@@ -39,11 +38,6 @@ const quickLinks = [
     href: '#ai-queries',
     title: 'AI Queries',
     icon: Brain,
-  },
-  {
-    href: '#chat-api',
-    title: 'LLM Chat',
-    icon: Bot,
   },
   {
     href: '#dashboard',
@@ -180,8 +174,8 @@ export default function DocsPage() {
                   },
                   {
                     icon: Boxes,
-                    title: 'Cross-Model Continuity',
-                    desc: 'Unified memory layer for multiple LLMs.',
+                    title: 'Structured Continuity',
+                    desc: 'Unified memory layer for retrieval-first applications.',
                   },
                 ].map((item) => {
                   const Icon = item.icon;
@@ -429,66 +423,60 @@ const memories = await response.json();`}
           </div>
         </section>
 
-        {/* CHAT & LLM API */}
-        <section id="chat-api" className="mb-24 scroll-mt-24">
+        {/* RETRIEVAL API */}
+        <section id="ai-queries" className="mb-24 scroll-mt-24">
           <SectionHeading
-            title="Direct LLM Chat"
-            description="Choose local Synapse memory retrieval or connect directly to OpenAI, Claude, Ollama, Hugging Face, or your own custom model."
+            title="Retrieval Queries"
+            description="Synapse currently ships as a memory-only cognitive engine focused on retrieval, extraction, and structured context."
           />
 
           <div className="space-y-6">
             <SectionCard>
               <h3 className="mb-6 text-2xl font-semibold text-[#2b2418]">
-                Chat Interface
+                Retrieval Workflow
               </h3>
               <p className="text-[#5f5545]">
-                Visit <code className="rounded bg-slate-100 px-2 py-1 text-sm text-slate-900">/chat</code> to use the new chat experience.
+                Use the dashboard to create memories, run semantic retrieval, inspect relevant memories, and manage structured cognitive context.
               </p>
             </SectionCard>
 
             <SectionCard>
               <h3 className="mb-6 text-2xl font-semibold text-[#2b2418]">
-                Direct LLM API
+                Query API
               </h3>
               <CodeBlock>
-                {`POST /api/ai/llm
+                {`POST /api/ai/proxy
 
 {
-  "provider": "openai", // local | openai | claude | ollama | huggingface
-  "prompt": "Summarize my current project goals.",
-  "use_memory": true,
+  "query": "What projects am I building?",
   "top_k": 5,
-  "model": "gpt-4o-mini"
+  "include_working_memory": true
 }`}
               </CodeBlock>
               <p className="text-[#5f5545]">
-                /api/ai/llm forwards requests either to the local Synapse service or directly to OpenAI, Claude, Ollama, or Hugging Face depending on the selected provider.
+                The web app proxies authenticated retrieval requests to the Synapse AI service and returns structured memory results.
               </p>
             </SectionCard>
 
             <SectionCard>
               <h3 className="mb-6 text-2xl font-semibold text-[#2b2418]">
-                External Provider Setup
+                Current Scope
               </h3>
               <CodeBlock>
-                {`# OpenAI
-OPENAI_API_KEY=your-openai-key
-OPENAI_API_BASE=https://api.openai.com/v1
+                {`Supported in this build:
+- semantic memory storage
+- semantic retrieval
+- working memory
+- memory extraction
+- health and model inspection
 
-# Anthropic Claude
-ANTHROPIC_API_KEY=your-anthropic-key
-ANTHROPIC_API_BASE=https://api.anthropic.com/v1
-
-# Ollama
-OLLAMA_API_BASE=http://localhost:11434
-OLLAMA_API_KEY=optional-key-if-configured
-
-# Hugging Face
-HUGGINGFACE_API_KEY=your-hf-key
-HUGGINGFACE_API_BASE=https://api-inference.huggingface.co/models`}
+Not shipped in this build:
+- direct provider orchestration
+- multi-LLM chat routing
+- third-party model API passthrough`}
               </CodeBlock>
               <p className="text-[#5f5545]">
-                Use provider-specific API keys and endpoints to connect third-party and self-hosted models through the same Synapse chat interface.
+                This keeps the product and operations surface tightly focused on memory infrastructure.
               </p>
             </SectionCard>
           </div>

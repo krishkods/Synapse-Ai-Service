@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import dbConnect from "@/lib/mongoose";
 import User from "@/models/User";
 import { extractTokenFromRequest, verifyToken } from "@/lib/auth";
+import { normalizePlanName } from "@/lib/plan-config";
 
 export async function PATCH(request: Request) {
   const token = extractTokenFromRequest(request);
@@ -44,5 +45,13 @@ export async function PATCH(request: Request) {
 
   await user.save();
 
-  return NextResponse.json({ success: true, user: { id: user._id, name: user.name, email: user.email } });
+  return NextResponse.json({
+    success: true,
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      plan: normalizePlanName(user.plan),
+    },
+  });
 }
